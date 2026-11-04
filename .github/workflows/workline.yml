@@ -76,7 +76,7 @@ permissions: {}
 concurrency: {group: "workline-judge-${{ github.event.pull_request.number || github.event.merge_group.head_ref || github.sha }}", cancel-in-progress: true}
 
 env:
-  WORKLINE_VERSION: engine-fd55a61249ae   # trial copy: workline built from a commit of its main, published as a release of this repository
+  WORKLINE_VERSION: engine-e039eda744a6   # trial copy: workline built from a commit of its main, published as a release of this repository
   # the job summary (--summary) needs the first release after v0.16.0
   WORKLINE_RUNS_DIR: ${{ github.workspace }}/.workline-runs
 
