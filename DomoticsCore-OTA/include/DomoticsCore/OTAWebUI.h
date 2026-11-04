@@ -529,6 +529,7 @@ private:
                         if (!ota->acceptUploadChunk(data, len)) {
                             uploadState.success = false;
                             uploadState.error = ota->getLastError();
+                            uploadState.rejected = true;
                         }
                     }
                     if (final) {

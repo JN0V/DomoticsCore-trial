@@ -238,7 +238,8 @@ bool OTAComponent::beginUpload(size_t expectedSize, const String& expectedSha256
 
 bool OTAComponent::acceptUploadChunk(const uint8_t* data, size_t length) {
     if (!uploadSession.active) {
-        lastError = "Upload not active";
+        // A session closed by its own failure keeps that failure as the answer.
+        lastError = uploadSession.error.isEmpty() ? String("Upload not active") : uploadSession.error;
         return false;
     }
     if (!data || length == 0) {
@@ -330,7 +331,8 @@ bool OTAComponent::acceptUploadChunk(const uint8_t* data, size_t length) {
 
 bool OTAComponent::finalizeUpload() {
     if (!uploadSession.active) {
-        lastError = "Upload not active";
+        // A session closed by its own failure keeps that failure as the answer.
+        lastError = uploadSession.error.isEmpty() ? String("Upload not active") : uploadSession.error;
         return false;
     }
 
