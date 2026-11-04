@@ -118,6 +118,69 @@ public:
         metadata.tags = {"storage", "preferences", "nvs", "settings", "config"};
     }
     
+    StorageComponent(const StorageComponent& o)
+        : IComponent(o), storageConfig(o.storageConfig), storage(o.storage),
+          statusTimer(o.statusTimer), maintenanceTimer(o.maintenanceTimer),
+          cache(o.cache), registeredKeys(o.registeredKeys),
+          isOpen(o.isOpen), entryCount(o.entryCount), nameStr_(o.nameStr_) {
+        rebindName_();
+    }
+
+    StorageComponent(StorageComponent&& o)
+        : IComponent(std::move(o)), storageConfig(std::move(o.storageConfig)),
+          storage(std::move(o.storage)),
+          statusTimer(std::move(o.statusTimer)),
+          maintenanceTimer(std::move(o.maintenanceTimer)),
+          cache(std::move(o.cache)), registeredKeys(std::move(o.registeredKeys)),
+          isOpen(o.isOpen), entryCount(o.entryCount), nameStr_(o.nameStr_) {
+        rebindName_();
+    }
+
+    StorageComponent& operator=(const StorageComponent& o) {
+        if (this != &o) {
+            IComponent::operator=(o);
+            storageConfig = o.storageConfig;
+            storage = o.storage;
+            statusTimer = o.statusTimer;
+            maintenanceTimer = o.maintenanceTimer;
+            cache = o.cache;
+            registeredKeys = o.registeredKeys;
+            isOpen = o.isOpen;
+            entryCount = o.entryCount;
+            nameStr_ = o.nameStr_;
+            rebindName_();
+        }
+        return *this;
+    }
+
+    StorageComponent& operator=(StorageComponent&& o) {
+        if (this != &o) {
+            IComponent::operator=(std::move(o));
+            storageConfig = std::move(o.storageConfig);
+            storage = std::move(o.storage);
+            statusTimer = std::move(o.statusTimer);
+            maintenanceTimer = std::move(o.maintenanceTimer);
+            cache = std::move(o.cache);
+            registeredKeys = std::move(o.registeredKeys);
+            isOpen = o.isOpen;
+            entryCount = o.entryCount;
+            nameStr_ = o.nameStr_;
+            rebindName_();
+        }
+        return *this;
+    }
+
+private:
+    // Point metadata.name at our own nameStr_ (or the literal) after copy/move.
+    void rebindName_() {
+        if (!nameStr_.isEmpty()) {
+            metadata.name = nameStr_.c_str();
+        } else {
+            metadata.name = "Storage";
+        }
+    }
+
+public:
     ComponentStatus begin() override {
         DLOG_I(LOG_STORAGE, "Initializing...");
         
