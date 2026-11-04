@@ -103,7 +103,7 @@ public:
         assert(!dispatching_ && "Cannot subscribe during EventBus dispatch");
         if (!handler) return 0;
         HAL::Platform::LockGuard guard(lock_);
-        uint32_t id = nextId++;
+        uint32_t id = allocateId();
         subscriptions[type].push_back({id, owner, std::move(handler)});
         return id;
     }
@@ -115,7 +115,7 @@ public:
         assert(!dispatching_ && "Cannot subscribe during EventBus dispatch");
         if (!handler || topic.length() == 0) return 0;
         HAL::Platform::LockGuard guard(lock_);
-        uint32_t id = nextId++;
+        uint32_t id = allocateId();
         if (isWildcard(topic)) {
             wildcardTopicSubscriptions[topic].push_back({id, owner, std::move(handler)});
         } else {
@@ -436,6 +436,25 @@ private:
             else ++it;
         }
         return found;
+    }
+
+    static bool idInMap(const std::map<EventType, std::vector<Subscription>>& m, uint32_t id) {
+        for (const auto& kv : m) for (const auto& s : kv.second) if (s.id == id) return true;
+        return false;
+    }
+    static bool idInMap(const std::map<String, std::vector<Subscription>>& m, uint32_t id) {
+        for (const auto& kv : m) for (const auto& s : kv.second) if (s.id == id) return true;
+        return false;
+    }
+    // Next subscription id: never 0, never one still in use (the counter may wrap).
+    // Caller holds lock_.
+    uint32_t allocateId() {
+        for (;;) {
+            uint32_t id = nextId++;
+            if (id == 0) continue;
+            if (!idInMap(subscriptions, id) && !idInMap(topicSubscriptions, id) &&
+                !idInMap(wildcardTopicSubscriptions, id)) return id;
+        }
     }
 
     // Internal state — if you add a new member, update reset() to clear it.
