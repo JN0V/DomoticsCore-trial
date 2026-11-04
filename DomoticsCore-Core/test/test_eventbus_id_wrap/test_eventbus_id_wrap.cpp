@@ -1,4 +1,6 @@
-// LO-4: subscription numbers must never repeat, even after the counter wraps.
+// EventBus subscription ids come from a 32-bit counter (nextId) that
+// overflows after about 4 billion subscribe calls. Ids must never repeat
+// once the counter wraps, or an unsubscribe could remove another handler.
 // The counter is private and has no accessor, so the test opens it, as a
 // white-box test: every header EventBus.h pulls in is included first.
 #include <unity.h>
