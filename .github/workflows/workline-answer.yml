@@ -12,7 +12,7 @@ permissions: {}
 concurrency: {group: "workline-answer-${{ github.event.workflow_run.head_branch }}", cancel-in-progress: false}
 
 env:
-  WORKLINE_VERSION: engine-e039eda744a6   # trial copy: workline built from a commit of its main, published as a release of this repository
+  WORKLINE_VERSION: engine-9f5afa470827   # trial copy: workline built from a commit of its main, published as a release of this repository
   WORKLINE_RUNS_DIR: ${{ github.workspace }}/.workline-runs
 
 jobs:
@@ -42,6 +42,8 @@ jobs:
         run: npm install -g @anthropic-ai/claude-code
       # Your test runner here: the tester proves a rewrite red on the base
       # with the project's `test-command`.
+      # DomoticsCore: PlatformIO, to prove a rewritten test red on its base.
+      - uses: ./.github/actions/workline-setup
       - name: The answer (proposed only)
         id: answer
         env:
