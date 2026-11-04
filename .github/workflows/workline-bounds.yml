@@ -13,7 +13,7 @@ permissions: {}
 concurrency: {group: "workline-bounds-${{ github.event.pull_request.number }}", cancel-in-progress: true}
 
 env:
-  WORKLINE_VERSION: engine-10eb0cde9271   # trial copy: workline built from a commit of its main, published as a release of this repository
+  WORKLINE_VERSION: engine-3eb0237ef3af   # trial copy: workline built from a commit of its main, published as a release of this repository
   WORKLINE_RUNS_DIR: ${{ github.workspace }}/.workline-runs
 
 jobs:
