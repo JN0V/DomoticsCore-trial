@@ -26,9 +26,9 @@ roles:
       sample: {judge: "claude:opus", after: ab2876ae9f5c20fa1128aae15e16f36c1bc3d118}
   product-owner:
     settings:
-      # Trial copy: a draft or a question waits 30 min, not 24 h, so the
+      # Trial copy: a draft or a question waits 5 min, not 24 h, so the
       # line's lazy consensus is seen within one watch.
-      acts: {ask: {wait: 30m}}
+      acts: {ask: {wait: 5m}}
   tester:
     settings:
       # Each component is a PlatformIO project with native Unity suites in
@@ -59,6 +59,8 @@ roles:
       proof-command: tools/workline-tests.sh {report} {packages}
 
 routing:
+  # Trial copy: every open issue's step in one reconcile.
+  reconcile-max: 12
   # Before a push, the committer checks the commits leaving the machine; the
   # documentalist only counts the docs they made suspect (ADR-0010). On a
   # pull request, the committer and the documentalist, the tester's guard on
