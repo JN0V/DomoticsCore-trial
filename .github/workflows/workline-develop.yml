@@ -59,7 +59,7 @@ on:
 permissions: {}
 
 env:
-  WORKLINE_VERSION: engine-9f5afa470827   # trial copy: workline built from a commit of its main, published as a release of this repository
+  WORKLINE_VERSION: engine-10eb0cde9271   # trial copy: workline built from a commit of its main, published as a release of this repository
   WORKLINE_RUNS_DIR: ${{ github.workspace }}/.workline-runs
 
 jobs:
