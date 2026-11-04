@@ -12,7 +12,7 @@ permissions: {}
 concurrency: {group: "workline-answer-${{ github.event.workflow_run.head_branch }}", cancel-in-progress: false}
 
 env:
-  WORKLINE_VERSION: engine-fd55a61249ae   # trial copy: workline built from a commit of its main, published as a release of this repository
+  WORKLINE_VERSION: engine-e039eda744a6   # trial copy: workline built from a commit of its main, published as a release of this repository
   WORKLINE_RUNS_DIR: ${{ github.workspace }}/.workline-runs
 
 jobs:
