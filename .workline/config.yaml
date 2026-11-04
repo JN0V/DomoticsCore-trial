@@ -27,7 +27,7 @@ roles:
   product-owner:
     settings:
       # Trial copy: a draft or a question waits 30 min, not 24 h, so the
-      # line's lazy consensus is seen within one watch (ADR-0060).
+      # line's lazy consensus is seen within one watch.
       acts: {ask: {wait: 30m}}
   tester:
     settings:
