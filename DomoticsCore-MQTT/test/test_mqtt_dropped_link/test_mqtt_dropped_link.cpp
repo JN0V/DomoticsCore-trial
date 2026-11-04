@@ -38,14 +38,14 @@ void attach(MQTTComponent& mqtt) {
     });
 }
 
-void dropLink() { HAL::MQTT::stubSetBrokerLink(false); }
-void restoreLink() { HAL::MQTT::stubSetBrokerLink(true); }
+// The broker or network drops the link without the component's disconnect().
+void dropLink(MQTTComponent& mqtt) { mqtt.getClientForTest()->disconnect(); }
 
 } // namespace
 
 void setUp() {
-    HAL::WiFiHAL::stubSetConnected(true);
-    restoreLink();
+    HAL::WiFiImpl::setConnectedForTest(true);
+    HAL::Platform::setMillisForTest(1000);
 }
 void tearDown() {}
 
@@ -57,13 +57,14 @@ void test_silent_reset() {
     MQTTComponent mqtt(makeConfig());
     attach(mqtt);
     mqtt.begin();
-    TEST_ASSERT_TRUE(mqtt.connect());
+    if (!mqtt.isConnected()) TEST_ASSERT_TRUE(mqtt.connect());
     TEST_ASSERT_TRUE(mqtt.getState() == MQTTState::Connected);
 
     mqtt.resetReconnect();
     TEST_ASSERT_EQUAL_INT(1, disconnectedCount);
     TEST_ASSERT_TRUE(mqtt.getState() == MQTTState::Disconnected);
 
+    mqtt.getClientForTest()->disconnect();
     TEST_ASSERT_TRUE(mqtt.connect());
     size_t d = order.find('D');
     size_t c = order.rfind('C');
@@ -80,13 +81,12 @@ void test_link_flap() {
     MQTTComponent mqtt(makeConfig());
     attach(mqtt);
     mqtt.begin();
-    TEST_ASSERT_TRUE(mqtt.connect());
+    if (!mqtt.isConnected()) TEST_ASSERT_TRUE(mqtt.connect());
 
     for (int i = 0; i < 2; i++) {
-        dropLink();
+        dropLink(mqtt);
         mqtt.loop();
-        restoreLink();
-        HAL::Platform::stubAdvanceMillis(100000);
+        HAL::Platform::advanceMillisForTest(100000);
         mqtt.loop();
         if (!mqtt.isConnected()) mqtt.connect();
         TEST_ASSERT_TRUE(mqtt.isConnected());
@@ -102,15 +102,15 @@ void test_frozen_uptime() {
     MQTTComponent mqtt(makeConfig());
     attach(mqtt);
     mqtt.begin();
-    TEST_ASSERT_TRUE(mqtt.connect());
-    HAL::Platform::stubAdvanceMillis(5000);
+    if (!mqtt.isConnected()) TEST_ASSERT_TRUE(mqtt.connect());
+    HAL::Platform::advanceMillisForTest(5000);
     mqtt.loop();
     TEST_ASSERT_TRUE(mqtt.getStatistics().uptime > 0);
 
-    dropLink();
+    dropLink(mqtt);
     mqtt.loop();
     TEST_ASSERT_EQUAL_UINT32(0, mqtt.getStatistics().uptime);
-    HAL::Platform::stubAdvanceMillis(5000);
+    HAL::Platform::advanceMillisForTest(5000);
     TEST_ASSERT_EQUAL_UINT32(0, mqtt.getStatistics().uptime);
 }
 
