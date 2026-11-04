@@ -332,6 +332,15 @@ public:
     }
 
     /**
+     * @brief Rename the LED at the given index.
+     */
+    bool setLEDName(size_t ledIndex, const String& name) {
+        if (ledIndex >= ledConfigs.size() || name.isEmpty()) return false;
+        ledConfigs[ledIndex].name = name;
+        return true;
+    }
+
+    /**
      * @brief Compose a human-readable description of an LED state.
      */
     String getLEDStatus(size_t ledIndex) const {
