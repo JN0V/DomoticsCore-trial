@@ -141,7 +141,13 @@ public:
             return "{\"success\":false,\"error\":\"Unknown LED\"}";
         }
         if (field == "enabled_toggle") {
-            enabled = (value == "true");
+            // Same vocabulary as the WiFi provider for true; the matching
+            // false words are accepted, anything else is refused.
+            bool on;
+            if (value == "true" || value == "1" || value == "on") on = true;
+            else if (value == "false" || value == "0" || value == "off") on = false;
+            else return "{\"success\":false,\"error\":\"Invalid boolean value\"}";
+            enabled = on;
             // Ensure selected index is valid before using
             selected = clampIndex(selected);
             led->enableLED(selected, enabled);
