@@ -16,7 +16,7 @@ verified: agent:documentalist
 **Step 1: Add to platformio.ini**
 ```ini
 [env:esp32dev]
-platform = espressif32
+platform = espressif32@7.1.3
 board = esp32dev
 framework = arduino
 
@@ -67,7 +67,7 @@ That's it! WiFi, LED status, telnet console, error recovery - all automatic.
 
 ```ini
 [env:esp32dev]
-platform = espressif32
+platform = espressif32@7.1.3
 board = esp32dev
 framework = arduino
 board_build.partitions = min_spiffs.csv
@@ -92,7 +92,7 @@ switching between a registry version and a checkout.
 
 ```ini
 [env:esp32c3]
-platform = espressif32
+platform = espressif32@7.1.3
 board = esp32-c3-devkitm-1
 framework = arduino
 

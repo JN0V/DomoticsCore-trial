@@ -19,21 +19,23 @@ root=$(git rev-parse --show-toplevel)
 cd "$root" || exit 1
 case $report in /*) ;; *) report="$root/$report" ;; esac
 
-# The components holding a native environment.
+# The PlatformIO projects holding a native environment: each component, and
+# the few suites that are projects of their own, as CI's native job runs them.
 all=()
-for ini in $(git ls-files 'DomoticsCore-*/platformio.ini'); do
+for ini in $(git ls-files '*platformio.ini'); do
   grep -q '^\[env:native\]' "$ini" && all+=("$(dirname "$ini")")
 done
 
-# The components the paths fall in; none named, or a path outside every
-# component, runs them all.
+# The projects the paths fall in, the innermost holding each; none named, or
+# a path outside every project, runs them all.
 picked=()
 if [ $# -gt 0 ]; then
   for p in "$@"; do
-    p=${p#./}
-    comp=${p%%/*}
+    p=${p#./}; p=${p%/}
     found=""
-    for c in "${all[@]}"; do [ "$c" = "$comp" ] && found=$c; done
+    for c in "${all[@]}"; do
+      case "$p/" in "$c"/*) [ ${#c} -gt ${#found} ] && found=$c ;; esac
+    done
     if [ -z "$found" ]; then picked=(); break; fi
     case " ${picked[*]} " in *" $found "*) ;; *) picked+=("$found") ;; esac
   done
@@ -45,7 +47,7 @@ trap 'rm -rf "$parts"' EXIT
 status=0
 for c in "${picked[@]}"; do
   echo "== $c"
-  (cd "$c" && pio test -e native --junit-output-path "$parts/$c.xml") 2>&1 |
+  (cd "$c" && pio test -e native --junit-output-path "$parts/${c//\//__}.xml") 2>&1 |
     sed -E "s#^((test|src|include|lib)/)#$c/\\1#"
   [ "${PIPESTATUS[0]}" -eq 0 ] || status=1
 done
@@ -55,7 +57,7 @@ import os, sys, xml.etree.ElementTree as ET
 report, parts = sys.argv[1], sys.argv[2]
 out = ET.Element("testsuites")
 for name in sorted(os.listdir(parts)):
-    comp = name[:-len(".xml")]
+    comp = name[:-len(".xml")].replace("__", "/")
     for suite in ET.parse(os.path.join(parts, name)).getroot().iter("testsuite"):
         env, _, sname = suite.get("name", "").partition(":")
         if env != "native":
