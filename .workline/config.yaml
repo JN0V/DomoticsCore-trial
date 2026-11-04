@@ -35,6 +35,9 @@ roles:
       # test/test_*/; tools/workline-tests.sh runs them and merges their
       # reports, its classname <component>/<suite>, its files from the root.
       test-command: tools/workline-tests.sh {report}
+      # This project's headers run long lines: 1500 lines of them passed
+      # the role's 60k-token context budget, and the agent was not asked.
+      code-lines-max: 1000
       # A new test is a new suite folder: a suite is one program, so a
       # second file beside an existing one would define main() twice.
       test-paths: ["DomoticsCore-*/test/**", "DomoticsCore-WebUI/webui_test/**"]
