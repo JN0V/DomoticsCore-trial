@@ -38,9 +38,11 @@ roles:
       build-errors:
         - error: '^(?P<file>[^\s:]+\.(?:cpp|cc|c|h|hpp)):\d+:\d+: error: (?P<message>.+)$'
           missing-name:
-            - "^'[\\w:]+' was not declared in this scope"
-            - "^'[\\w:]+' is not a member of '[\\w:]+'"
-            - "^'(?:class|struct) [^']+' has no member named '\\w+'"
+            # gcc quotes with ‘’ in a UTF-8 locale, with '' in C.
+            - "^[‘'][\\w:]+[’'] was not declared in this scope"
+            - "^[‘'][\\w:]+[’'] has not been declared"
+            - "^[‘'][\\w:]+[’'] is not a member of [‘'][\\w:]+[’']"
+            - "^[‘'](?:class|struct) [^’']+[’'] has no member named [‘']\\w+[’']"
           test-name: '(?m)^(?:static\s+)?void\s+(test_\w+)\s*\(\s*(?:void)?\s*\)'
   developer:
     settings:
