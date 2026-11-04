@@ -529,6 +529,11 @@ private:
                         if (!ota->acceptUploadChunk(data, len)) {
                             uploadState.success = false;
                             uploadState.error = ota->getLastError();
+                            uploadState.rejected = true;
+                            // The component already closed its session; the
+                            // disconnect handler must not abort it again or
+                            // overwrite this error.
+                            uploadState.active = false;
                         }
                     }
                     if (final) {
