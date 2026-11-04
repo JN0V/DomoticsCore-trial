@@ -120,10 +120,24 @@ void test_disabling_turns_the_led_off(void) {
     TEST_ASSERT_TRUE(contains(f.led.getLEDStatus(0), "Disabled"));
 }
 
-void test_only_the_literal_true_enables(void) {
-    Fixture f;
-    post(f.ui, "enabled_toggle", "TRUE");
-    TEST_ASSERT_TRUE(contains(f.led.getLEDStatus(0), "Disabled"));
+void test_only_the_boolean_vocabulary_is_accepted(void) {
+    for (const char* v : {"1", "on", "true"}) {
+        Fixture f;
+        TEST_ASSERT_TRUE_MESSAGE(succeeded(post(f.ui, "enabled_toggle", v)), v);
+        TEST_ASSERT_TRUE_MESSAGE(contains(f.led.getLEDStatus(0), "Enabled"), v);
+    }
+    for (const char* v : {"0", "off", "false"}) {
+        Fixture f;
+        post(f.ui, "enabled_toggle", "true");
+        TEST_ASSERT_TRUE_MESSAGE(succeeded(post(f.ui, "enabled_toggle", v)), v);
+        TEST_ASSERT_TRUE_MESSAGE(contains(f.led.getLEDStatus(0), "Disabled"), v);
+    }
+    for (const char* v : {"TRUE", "garbage", ""}) {
+        Fixture f;
+        String r = post(f.ui, "enabled_toggle", v);
+        TEST_ASSERT_FALSE_MESSAGE(succeeded(r), v);
+        TEST_ASSERT_TRUE_MESSAGE(contains(r, "\"error\":\"Invalid boolean value\""), v);
+    }
 }
 
 // ============================================================================
@@ -380,7 +394,7 @@ int main(int argc, char** argv) {
 
     RUN_TEST(test_enabling_lights_the_selected_led_white);
     RUN_TEST(test_disabling_turns_the_led_off);
-    RUN_TEST(test_only_the_literal_true_enables);
+    RUN_TEST(test_only_the_boolean_vocabulary_is_accepted);
 
     RUN_TEST(test_brightness_reaches_the_led_when_enabled);
     RUN_TEST(test_brightness_is_clamped_above);
