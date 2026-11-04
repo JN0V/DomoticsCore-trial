@@ -328,6 +328,39 @@ void test_a_finished_uploads_own_disconnect_aborts_nothing() {
                                      "a completed upload was aborted by its own disconnect");
 }
 
+void test_a_chunk_that_crosses_the_cap_keeps_its_reason_in_the_answer() {
+    harness->otaConfig.maxDownloadSize = 1000;
+    harness->otaConfig.requireUploadHash = false;
+    harness->build();
+    const String token = harness->csrfToken();
+
+    uint8_t buf[400];
+    for (size_t i = 0; i < sizeof(buf); ++i) buf[i] = static_cast<uint8_t>(i);
+
+    AsyncWebServerRequest request;
+    request.addHeader("X-DC-Token", token);
+    request.setContentLength(1000);
+    RecordedRoute* route = harness->uploadRoute();
+    route->uploadHandler(&request, String("firmware.bin"), 0, buf, 400, false);
+    route->uploadHandler(&request, String("firmware.bin"), 400, buf, 400, false);
+    route->uploadHandler(&request, String("firmware.bin"), 800, buf, 400, false);  // crosses the cap
+    route->uploadHandler(&request, String("firmware.bin"), 1200, buf, 400, false);
+    route->uploadHandler(&request, String("firmware.bin"), 1600, buf, 100, true);
+
+    TEST_ASSERT_FALSE(harness->ota->isBusy());
+    complete(request);
+    TEST_ASSERT_TRUE_MESSAGE(request.sentBody.indexOf("Firmware too large") >= 0,
+                             request.sentBody.c_str());
+    TEST_ASSERT_TRUE_MESSAGE(request.sentBody.indexOf("Upload not active") < 0,
+                             request.sentBody.c_str());
+
+    // The disconnect must not abort the closed session or replace the error.
+    const size_t abortsBefore = DomoticsCore::HAL::OTAUpdate::s_stubAbortCalls;
+    request.fireDisconnect();
+    TEST_ASSERT_EQUAL_UINT32(abortsBefore, DomoticsCore::HAL::OTAUpdate::s_stubAbortCalls);
+    TEST_ASSERT_EQUAL_STRING("Firmware too large", harness->ota->getLastError().c_str());
+}
+
 void test_the_receive_idle_timeout_widens_only_once_the_gates_pass() {
     harness->build();
     const String token = harness->csrfToken();
@@ -581,6 +614,7 @@ int main(int, char**) {
     RUN_TEST(test_a_client_that_vanishes_mid_upload_releases_the_update);
     RUN_TEST(test_a_finished_uploads_own_disconnect_aborts_nothing);
     RUN_TEST(test_the_receive_idle_timeout_widens_only_once_the_gates_pass);
+    RUN_TEST(test_a_chunk_that_crosses_the_cap_keeps_its_reason_in_the_answer);
     RUN_TEST(test_the_announced_envelope_is_narrowed_to_what_was_delivered);
     RUN_TEST(test_a_check_without_credentials_triggers_nothing);
     RUN_TEST(test_a_check_with_credentials_still_triggers);
