@@ -41,15 +41,30 @@ private:
         }
     }
 
+    std::vector<String> liveNames() const {
+        std::vector<String> names = led->getLEDNames();
+        if (names.empty()) {
+            size_t count = led->getLEDCount();
+            for (size_t i = 0; i < count; ++i) {
+                names.push_back(String("LED_") + String(i));
+            }
+        }
+        return names;
+    }
+
+    // The schema holds the names it was built with; when the live list has
+    // moved on (addLED, rename), drop both caches so it is rebuilt.
+    void refreshIfNamesChanged() {
+        if (!led || !contextsCached_ || !namesCached_) return;
+        if (liveNames() != cachedNames_) {
+            namesCached_ = false;
+            invalidateContextCache();
+        }
+    }
+
     const std::vector<String>& getCachedNames() const {
         if (!namesCached_ && led) {
-            cachedNames_ = led->getLEDNames();
-            if (cachedNames_.empty()) {
-                size_t count = led->getLEDCount();
-                for (size_t i = 0; i < count; ++i) {
-                    cachedNames_.push_back(String("LED_") + String(i));
-                }
-            }
+            cachedNames_ = liveNames();
             namesCached_ = true;
         }
         return cachedNames_;
@@ -89,6 +104,26 @@ protected:
     }
 
 public:
+    void forEachContext(std::function<bool(const WebUIContext&)> callback) override {
+        refreshIfNamesChanged();
+        CachingWebUIProvider::forEachContext(callback);
+    }
+    size_t getContextCount() override {
+        refreshIfNamesChanged();
+        return CachingWebUIProvider::getContextCount();
+    }
+    bool getContextAt(size_t index, WebUIContext& outContext) override {
+        refreshIfNamesChanged();
+        return CachingWebUIProvider::getContextAt(index, outContext);
+    }
+    const WebUIContext* getContextAtRef(size_t index) override {
+        refreshIfNamesChanged();
+        return CachingWebUIProvider::getContextAtRef(index);
+    }
+    WebUIContext getWebUIContext(const String& contextId) override {
+        refreshIfNamesChanged();
+        return CachingWebUIProvider::getWebUIContext(contextId);
+    }
 
     String getWebUIData(const String& contextId) override {
         // Without a component there is nothing to report, and the dashboard
@@ -141,7 +176,13 @@ public:
             return "{\"success\":false,\"error\":\"Unknown LED\"}";
         }
         if (field == "enabled_toggle") {
-            enabled = (value == "true");
+            // Same vocabulary as the WiFi provider for true; the matching
+            // false words are accepted, anything else is refused.
+            bool on;
+            if (value == "true" || value == "1" || value == "on") on = true;
+            else if (value == "false" || value == "0" || value == "off") on = false;
+            else return "{\"success\":false,\"error\":\"Invalid boolean value\"}";
+            enabled = on;
             // Ensure selected index is valid before using
             selected = clampIndex(selected);
             led->enableLED(selected, enabled);

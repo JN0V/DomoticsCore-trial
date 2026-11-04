@@ -218,8 +218,12 @@ public:
     
     ComponentStatus shutdown() override {
         DLOG_I(LOG_HA, "Shutting down");
-        setAvailable(false);
-        removeDiscovery();
+        // Over a dropped link nothing can be delivered: queuing it would only
+        // waste EventBus space.
+        if (mqttConnected) {
+            setAvailable(false);
+            removeDiscovery();
+        }
         // Nothing will drain it after this, and the entities it points at are
         // being withdrawn from Home Assistant anyway.
         HAL::Platform::LockGuard guard(storeLock);
