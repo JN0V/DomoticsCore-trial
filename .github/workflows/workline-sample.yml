@@ -47,7 +47,7 @@ on:
 permissions: {}
 
 env:
-  WORKLINE_VERSION: engine-10eb0cde9271   # trial copy: workline built from a commit of its main, published as a release of this repository
+  WORKLINE_VERSION: engine-3eb0237ef3af   # trial copy: workline built from a commit of its main, published as a release of this repository
   # the job summary (--summary) needs the first release after v0.16.0
 
 jobs:
