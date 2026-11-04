@@ -22,7 +22,7 @@ on:
 permissions: {}
 
 env:
-  WORKLINE_VERSION: engine-3eb0237ef3af   # trial copy: workline built from a commit of its main, published as a release of this repository
+  WORKLINE_VERSION: "${{ vars.WORKLINE_ENGINE }}"   # trial copy: workline built from a commit of its main, a release here named by the variable WORKLINE_ENGINE
 
 jobs:
   follow:
