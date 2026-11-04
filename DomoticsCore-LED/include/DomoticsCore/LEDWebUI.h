@@ -74,7 +74,7 @@ public:
     explicit LEDWebUI(LEDComponent* comp) : led(comp) {}
 
     String getWebUIName() const override { return led ? led->metadata.name : String("LED"); }
-    String getWebUIVersion() const override { return led ? led->metadata.version : String("1.3.0"); }
+    String getWebUIVersion() const override { return led ? String(led->metadata.version) : String(LEDComponent().metadata.version); }
 
 protected:
     void buildContexts(std::vector<WebUIContext>& contexts) override {

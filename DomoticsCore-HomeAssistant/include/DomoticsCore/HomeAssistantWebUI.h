@@ -47,7 +47,7 @@ public:
     }
 
     String getWebUIVersion() const override {
-        return ha ? ha->getMetadata().version : String("1.4.0");
+        return ha ? String(ha->getMetadata().version) : String(HomeAssistant::HomeAssistantComponent().getMetadata().version);
     }
 
 protected:

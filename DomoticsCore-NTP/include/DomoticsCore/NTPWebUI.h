@@ -142,7 +142,7 @@ public:
     }
 
     String getWebUIVersion() const override {
-        return ntp ? ntp->metadata.version : String("1.0.2");
+        return ntp ? String(ntp->metadata.version) : String(NTPComponent().metadata.version);
     }
 
 protected:
