@@ -120,10 +120,24 @@ void test_disabling_turns_the_led_off(void) {
     TEST_ASSERT_TRUE(contains(f.led.getLEDStatus(0), "Disabled"));
 }
 
-void test_only_the_literal_true_enables(void) {
-    Fixture f;
-    post(f.ui, "enabled_toggle", "TRUE");
-    TEST_ASSERT_TRUE(contains(f.led.getLEDStatus(0), "Disabled"));
+void test_only_the_boolean_vocabulary_is_accepted(void) {
+    for (const char* v : {"1", "on", "true"}) {
+        Fixture f;
+        TEST_ASSERT_TRUE_MESSAGE(succeeded(post(f.ui, "enabled_toggle", v)), v);
+        TEST_ASSERT_TRUE_MESSAGE(contains(f.led.getLEDStatus(0), "Enabled"), v);
+    }
+    for (const char* v : {"0", "off", "false"}) {
+        Fixture f;
+        post(f.ui, "enabled_toggle", "true");
+        TEST_ASSERT_TRUE_MESSAGE(succeeded(post(f.ui, "enabled_toggle", v)), v);
+        TEST_ASSERT_TRUE_MESSAGE(contains(f.led.getLEDStatus(0), "Disabled"), v);
+    }
+    for (const char* v : {"TRUE", "garbage", ""}) {
+        Fixture f;
+        String r = post(f.ui, "enabled_toggle", v);
+        TEST_ASSERT_FALSE_MESSAGE(succeeded(r), v);
+        TEST_ASSERT_TRUE_MESSAGE(contains(r, "\"error\":\"Invalid boolean value\""), v);
+    }
 }
 
 // ============================================================================
@@ -261,6 +275,38 @@ void test_every_option_the_card_offers_is_accepted(void) {
     TEST_ASSERT_EQUAL_size_t(8, checked);
 }
 
+// A dashboard already built must follow the LED list: an LED added or renamed
+// afterwards is offered, and every offered name is accepted.
+static void assert_every_led_option_accepted(Fixture& f, const char* expected, size_t count) {
+    WebUIContext dash = f.ui.getWebUIContext(String("led_dashboard"));
+    bool listed = false;
+    size_t checked = 0;
+    for (const auto& field : dash.fields) {
+        if (strcmp(field.getNameCStr(), "led_select") != 0) continue;
+        for (const auto& option : field.options) {
+            if (option == expected) listed = true;
+            TEST_ASSERT_TRUE_MESSAGE(succeeded(post(f.ui, "led_select", option.c_str())), option.c_str());
+            ++checked;
+        }
+    }
+    TEST_ASSERT_TRUE_MESSAGE(listed, expected);
+    TEST_ASSERT_EQUAL_size_t(count, checked);
+}
+
+void test_a_led_added_after_the_build_is_offered_and_accepted(void) {
+    Fixture f;
+    f.ui.getContextCount();
+    f.led.addSingleLED(4, "Late");
+    assert_every_led_option_accepted(f, "Late", 3);
+}
+
+void test_a_led_renamed_after_the_build_is_offered_and_accepted(void) {
+    Fixture f;
+    f.ui.getContextCount();
+    TEST_ASSERT_TRUE(f.led.setLEDName(1, String("Renamed")));
+    assert_every_led_option_accepted(f, "Renamed", 2);
+}
+
 // A refusal that names nothing cannot be shown on the field it was refused for.
 void test_every_refusal_names_its_reason(void) {
     Fixture f;
@@ -348,7 +394,7 @@ int main(int argc, char** argv) {
 
     RUN_TEST(test_enabling_lights_the_selected_led_white);
     RUN_TEST(test_disabling_turns_the_led_off);
-    RUN_TEST(test_only_the_literal_true_enables);
+    RUN_TEST(test_only_the_boolean_vocabulary_is_accepted);
 
     RUN_TEST(test_brightness_reaches_the_led_when_enabled);
     RUN_TEST(test_brightness_is_clamped_above);
@@ -362,6 +408,8 @@ int main(int argc, char** argv) {
     RUN_TEST(test_selecting_a_led_by_name_moves_the_target);
     RUN_TEST(test_selecting_an_unknown_name_is_refused);
     RUN_TEST(test_every_option_the_card_offers_is_accepted);
+    RUN_TEST(test_a_led_added_after_the_build_is_offered_and_accepted);
+    RUN_TEST(test_a_led_renamed_after_the_build_is_offered_and_accepted);
     RUN_TEST(test_every_refusal_names_its_reason);
 
     RUN_TEST(test_status_context_reports_off_then_on);
