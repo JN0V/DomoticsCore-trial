@@ -101,6 +101,46 @@ void test_home_assistant_is_ready_again_after_the_link_returns() {
         "the link came back and HomeAssistant stayed mute");
 }
 
+// Over a dead link shutdown() has nothing to deliver: it must not queue the
+// offline availability and the removals on the EventBus.
+void test_shutdown_during_an_outage_queues_no_mqtt_publish() {
+    DroppedLinkFixture f;
+    f.ha->addSensor("uptime", "Uptime", "s");
+    f.drain();
+    f.dropTheLink();
+
+    int publishes = 0;
+    f.core.on<MQTTPublishEvent>(DomoticsCore::MQTTEvents::EVENT_PUBLISH,
+        [&](const MQTTPublishEvent&) { publishes++; });
+
+    f.ha->shutdown();
+    f.drain();
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(0, publishes,
+        "shutdown() queued MQTT publishes over a dropped link");
+}
+
+// The connected case keeps its farewell: offline availability and removals.
+void test_shutdown_while_connected_still_emits_the_farewell() {
+    DroppedLinkFixture f;
+    f.ha->addSensor("uptime", "Uptime", "s");
+    f.drain();
+
+    int removals = 0;
+    int publishes = 0;
+    f.core.on<MQTTPublishEvent>(DomoticsCore::MQTTEvents::EVENT_PUBLISH,
+        [&](const MQTTPublishEvent& ev) {
+            publishes++;
+            if (strstr(ev.topic, "/config") && ev.payload[0] == '\0') removals++;
+        });
+
+    f.ha->shutdown();
+    f.drain();
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(1, removals, "shutdown() left the entity in Home Assistant");
+    TEST_ASSERT_TRUE_MESSAGE(publishes >= 2, "shutdown() did not publish the offline availability");
+}
+
 static int runAllTests() {
     UNITY_BEGIN();
 
@@ -108,6 +148,8 @@ static int runAllTests() {
     RUN_TEST(test_a_dropped_link_takes_home_assistant_out_of_ready);
     RUN_TEST(test_a_state_published_during_an_outage_reaches_nothing);
     RUN_TEST(test_home_assistant_is_ready_again_after_the_link_returns);
+    RUN_TEST(test_shutdown_during_an_outage_queues_no_mqtt_publish);
+    RUN_TEST(test_shutdown_while_connected_still_emits_the_farewell);
 
     return UNITY_END();
 }
