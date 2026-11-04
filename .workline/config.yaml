@@ -24,6 +24,11 @@ roles:
       # Sonnet, so Opus reads. Nothing vouched for before the merge of #119,
       # the first engine on main that earns `checked` (v0.2.1), is sampled.
       sample: {judge: "claude:opus", after: ab2876ae9f5c20fa1128aae15e16f36c1bc3d118}
+  product-owner:
+    settings:
+      # Trial copy: a draft or a question waits 30 min, not 24 h, so the
+      # line's lazy consensus is seen within one watch (ADR-0060).
+      acts: {ask: {wait: 30m}}
   tester:
     settings:
       # Each component is a PlatformIO project with native Unity suites in
