@@ -24,11 +24,42 @@ roles:
       # Sonnet, so Opus reads. Nothing vouched for before the merge of #119,
       # the first engine on main that earns `checked` (v0.2.1), is sampled.
       sample: {judge: "claude:opus", after: ab2876ae9f5c20fa1128aae15e16f36c1bc3d118}
+  tester:
+    settings:
+      # Each component is a PlatformIO project with native Unity suites in
+      # test/test_*/; tools/workline-tests.sh runs them and merges their
+      # reports, its classname <component>/<suite>, its files from the root.
+      test-command: tools/workline-tests.sh {report}
+      # A new test is a new suite folder: a suite is one program, so a
+      # second file beside an existing one would define main() twice.
+      test-paths: ["DomoticsCore-*/test/**", "DomoticsCore-WebUI/webui_test/**"]
+      # g++'s error lines, rewritten from the root by the script: a test
+      # written before its code names what the code lacks.
+      build-errors:
+        - error: '^(?P<file>[^\s:]+\.(?:cpp|cc|c|h|hpp)):\d+:\d+: error: (?P<message>.+)$'
+          missing-name:
+            - "^'[\\w:]+' was not declared in this scope"
+            - "^'[\\w:]+' is not a member of '[\\w:]+'"
+            - "^'(?:class|struct) [^']+' has no member named '\\w+'"
+          test-name: '(?m)^(?:static\s+)?void\s+(test_\w+)\s*\(\s*(?:void)?\s*\)'
+  developer:
+    settings:
+      # Its proof on the components its code and the tests touch; the pull
+      # request's CI runs every suite and every board build.
+      proof-command: tools/workline-tests.sh {report} {packages}
+
 routing:
   # Before a push, the committer checks the commits leaving the machine; the
-  # documentalist only counts the docs they made suspect (ADR-0010). Docs are
-  # judged on the pull request, and by gardening at night.
-  # Gardening at night: the docs, then the backlog (workline ADR-0018); the
-  # product owner's acts and proposals are listed in the issue "Backlog —
-  # product owner".
-  events: {pre-push: [committer, documentalist], schedule: [documentalist, product-owner]}
+  # documentalist only counts the docs they made suspect (ADR-0010). On a
+  # pull request, the committer and the documentalist, the tester's guard on
+  # its own branches, then the reviewer reads the code. Gardening at night:
+  # the docs, then the backlog, then the specs it refined. The line of
+  # states (workline ADR-0059), by events (workline-develop.yml): an issue
+  # to refine wakes the product owner, then the reviewer reads its spec;
+  # one waiting for its tests wakes the tester; ready wakes the developer.
+  events: {pre-push: [committer, documentalist], merge-request: [committer, documentalist, tester, reviewer],
+    schedule: [documentalist, product-owner, reviewer], issue: [product-owner, reviewer, tester, developer]}
+
+# The forge merges what a person accepted (workline ADR-0042), and at
+# `normal` a reproduced bug's fix once every check is green (ADR-0060).
+merge: {autonomy: normal}
