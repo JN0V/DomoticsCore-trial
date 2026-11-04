@@ -108,6 +108,8 @@ inline ComponentStatus MQTTComponent::begin() {
 inline void MQTTComponent::announceConnectionLost() {
     state = MQTTState::Disconnected;
     stateChangeTime = HAL::Platform::getMillis();
+    stats.lostCount++;
+    stats.uptime = 0;
     DLOG_W(LOG_MQTT, "Connection lost");
     emit(MQTTEvents::EVENT_DISCONNECTED, true);
 }
@@ -235,6 +237,10 @@ inline void MQTTComponent::disconnect() {
 }
 
 inline void MQTTComponent::resetReconnect() {
+    if (state == MQTTState::Connected) {
+        mqttClient->disconnect();
+        announceConnectionLost();
+    }
     stats.reconnectCount = 0;
     reconnectTimer.setInterval(config.reconnectDelay);
     reconnectTimer.enable();

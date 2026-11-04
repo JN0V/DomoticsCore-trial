@@ -141,6 +141,7 @@ struct MQTTStatistics {
     uint32_t publishErrors = 0;         ///< Failed publish attempts
     uint32_t receiveCount = 0;          ///< Total messages received
     uint32_t subscriptionCount = 0;     ///< Active subscriptions
+    uint32_t lostCount = 0;             ///< Connections lost
     uint32_t uptime = 0;                ///< Seconds connected
     uint32_t lastLatency = 0;           ///< Last measured latency (ms)
 };
