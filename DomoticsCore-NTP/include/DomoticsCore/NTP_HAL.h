@@ -34,6 +34,7 @@ inline time_t getTime();
     #include "NTP_ESP32.h"
 #elif DOMOTICS_PLATFORM_ESP8266
     #include "NTP_ESP8266.h"
+    #include <coredecls.h>  // settimeofday_cb
 #else
     #include "NTP_Stub.h"
 #endif
@@ -57,15 +58,15 @@ inline uint32_t& answeredSyncs() {
 #if DOMOTICS_PLATFORM_ESP32
 inline void onSntpAnswer(struct timeval*) { answeredSyncs()++; }
 #elif DOMOTICS_PLATFORM_ESP8266
-inline uint32_t& lastSntpStamp() {
-    static uint32_t value = 0;
-    return value;
-}
+// Called by the core's SNTP client each time a server's answer sets the clock.
+inline void onSntpAnswer() { answeredSyncs()++; }
 #endif
 
 inline void init(const char* server1, const char* server2 = nullptr, const char* server3 = nullptr) {
 #if DOMOTICS_PLATFORM_ESP32
     sntp_set_time_sync_notification_cb(onSntpAnswer);
+#elif DOMOTICS_PLATFORM_ESP8266
+    settimeofday_cb(onSntpAnswer);
 #endif
     NTPImpl::init(server1, server2, server3);
 }
@@ -75,12 +76,6 @@ inline uint32_t syncCounter() {
 #if DOMOTICS_PLATFORM_ESP32
     return answeredSyncs();
 #elif DOMOTICS_PLATFORM_ESP8266
-    // lwIP's SNTP has no notification here: a new server timestamp is an answer.
-    uint32_t stamp = sntp_get_current_timestamp();
-    if (stamp != lastSntpStamp()) {
-        lastSntpStamp() = stamp;
-        answeredSyncs()++;
-    }
     return answeredSyncs();
 #else
     return NTPImpl::syncCounter();
