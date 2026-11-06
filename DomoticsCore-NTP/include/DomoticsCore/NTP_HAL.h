@@ -47,6 +47,15 @@ namespace DomoticsCore {
 namespace HAL {
 namespace NTP {
 
+/// Whether the clock set just now is a server's answer: the SNTP client's own
+/// timestamp is known (non-zero) and the clock is within 2 seconds of it.
+/// Plain function, so host tests reach it.
+inline bool isServerAnswer(time_t clockNow, uint32_t sntpTimestamp) {
+    if (sntpTimestamp == 0) return false;
+    long diff = (long)clockNow - (long)sntpTimestamp;
+    return diff >= -2 && diff <= 2;
+}
+
 #if DOMOTICS_PLATFORM_ESP32 || DOMOTICS_PLATFORM_ESP8266
 /// Syncs a server answered, counted from the SNTP client's notification.
 inline uint32_t& answeredSyncs() {
@@ -62,11 +71,7 @@ inline void onSntpAnswer(struct timeval*) { answeredSyncs()++; }
 // agrees with the SNTP client's own timestamp (the server's answer); a clock
 // set by other code does not match it and is ignored.
 inline void onSntpAnswer() {
-    uint32_t server = sntp_get_current_timestamp();
-    if (server == 0) return;
-    long diff = (long)time(nullptr) - (long)server;
-    if (diff < -2 || diff > 2) return;
-    answeredSyncs()++;
+    if (isServerAnswer(time(nullptr), sntp_get_current_timestamp())) answeredSyncs()++;
 }
 #endif
 

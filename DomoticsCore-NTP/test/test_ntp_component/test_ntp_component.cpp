@@ -587,6 +587,16 @@ void test_ntp_sync_now_unanswered_fails() {
     TEST_ASSERT_EQUAL_INT(1, f.fail);
 }
 
+void test_ntp_server_answer_filter() {
+    TEST_ASSERT_FALSE(HAL::NTP::isServerAnswer(1700000000, 0));
+    TEST_ASSERT_TRUE(HAL::NTP::isServerAnswer(1700000000, 1700000000));
+    TEST_ASSERT_TRUE(HAL::NTP::isServerAnswer(1700000002, 1700000000));
+    TEST_ASSERT_TRUE(HAL::NTP::isServerAnswer(1699999998, 1700000000));
+    TEST_ASSERT_FALSE(HAL::NTP::isServerAnswer(1700000003, 1700000000));
+    TEST_ASSERT_FALSE(HAL::NTP::isServerAnswer(1699999997, 1700000000));
+    TEST_ASSERT_FALSE(HAL::NTP::isServerAnswer(1700005000, 1700000000));
+}
+
 void test_ntp_sync_now_answered_succeeds() {
     HAL::NTPImpl::answerSyncForTest() = true;
     SyncedOnceFixture f;
@@ -673,6 +683,7 @@ int main() {
     RUN_TEST(test_ntp_isSynced_delegates_to_HAL);
     RUN_TEST(test_ntp_sync_now_unanswered_fails);
     RUN_TEST(test_ntp_sync_now_answered_succeeds);
+    RUN_TEST(test_ntp_server_answer_filter);
 
     return UNITY_END();
 }
