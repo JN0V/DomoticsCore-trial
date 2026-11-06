@@ -34,6 +34,7 @@ inline time_t getTime();
     #include "NTP_ESP32.h"
 #elif DOMOTICS_PLATFORM_ESP8266
     #include "NTP_ESP8266.h"
+    #include <coredecls.h>  // settimeofday_cb
 #else
     #include "NTP_Stub.h"
 #endif
@@ -46,8 +47,52 @@ namespace DomoticsCore {
 namespace HAL {
 namespace NTP {
 
+/// Whether the clock set just now is a server's answer: the SNTP client's own
+/// timestamp is known (non-zero) and the clock is within 2 seconds of it.
+/// Plain function, so host tests reach it.
+inline bool isServerAnswer(time_t clockNow, uint32_t sntpTimestamp) {
+    if (sntpTimestamp == 0) return false;
+    long diff = (long)clockNow - (long)sntpTimestamp;
+    return diff >= -2 && diff <= 2;
+}
+
+#if DOMOTICS_PLATFORM_ESP32 || DOMOTICS_PLATFORM_ESP8266
+/// Syncs a server answered, counted from the SNTP client's notification.
+inline uint32_t& answeredSyncs() {
+    static uint32_t value = 0;
+    return value;
+}
+#endif
+
+#if DOMOTICS_PLATFORM_ESP32
+inline void onSntpAnswer(struct timeval*) { answeredSyncs()++; }
+#elif DOMOTICS_PLATFORM_ESP8266
+// Called on every settimeofday(), SNTP's or not. Count it only when the clock
+// agrees with the SNTP client's own timestamp (the server's answer); a clock
+// set by other code does not match it and is ignored.
+inline void onSntpAnswer() {
+    if (isServerAnswer(time(nullptr), sntp_get_current_timestamp())) answeredSyncs()++;
+}
+#endif
+
 inline void init(const char* server1, const char* server2 = nullptr, const char* server3 = nullptr) {
+#if DOMOTICS_PLATFORM_ESP32
+    sntp_set_time_sync_notification_cb(onSntpAnswer);
+#elif DOMOTICS_PLATFORM_ESP8266
+    settimeofday_cb(onSntpAnswer);
+#endif
     NTPImpl::init(server1, server2, server3);
+}
+
+/// Count of syncs a server answered; a change tells a requested sync ended.
+inline uint32_t syncCounter() {
+#if DOMOTICS_PLATFORM_ESP32
+    return answeredSyncs();
+#elif DOMOTICS_PLATFORM_ESP8266
+    return answeredSyncs();
+#else
+    return NTPImpl::syncCounter();
+#endif
 }
 
 inline void setTimezone(const char* tz) {
