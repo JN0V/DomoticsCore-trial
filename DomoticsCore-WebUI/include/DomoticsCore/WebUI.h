@@ -79,11 +79,16 @@ private:
     // Update buffer shared by the poll handler (web task) and the SSE broadcast
     // (loop task): bufferLock_ covers it from build to last read, not only the build.
     // Taken before the registry's lock, never under it.
-    static char wsBuffer_[WEBUI_WS_BUFFER_SIZE];
-    static HAL::Platform::RecursiveLock bufferLock_;
+    inline static char wsBuffer_[WEBUI_WS_BUFFER_SIZE];
+    inline static HAL::Platform::RecursiveLock bufferLock_;
 
     // Heap-staging diagnostics for /api/ui/schema (see WebUI/SchemaMemProbe.h)
     WebUI::SchemaMemProbes schemaProbes_;
+    // Switches queued from the page and not yet applied by loop(): the state
+    // a further request is judged against, so two posts before one loop()
+    // do not both get queued.
+    std::map<String, bool> queuedSwitch_;
+    HAL::Platform::RecursiveLock queuedSwitchLock_;
     
     // Config persistence callback
     std::function<void(const WebUIConfig&)> onConfigChanged;
@@ -175,6 +180,10 @@ public:
 
         schemaProbes_.tick();
 
+        {
+            HAL::Platform::LockGuard guard(queuedSwitchLock_);
+            queuedSwitch_.clear();
+        }
         registry->applyPendingEnables([this](const String& name) { webSocket->broadcastSchemaChange(name); });
 
         if (webSocket->shouldSendUpdates()) {
@@ -680,7 +689,30 @@ private:
                 doc["success"] = false;
                 doc["warning"] = "Disabling WebUI may make the UI inaccessible until reboot/reset.";
             } else {
-                doc["success"] = registry->requestEnable(name, enabled);
+                // A component already in the requested state is left alone:
+                // begin()/shutdown() must not run twice in a row.
+                bool known = false, current = false;
+                {
+                    JsonDocument list;
+                    registry->getComponentsList(list);
+                    for (JsonObject c : list["components"].as<JsonArray>()) {
+                        if (name == (c["name"] | "")) {
+                            known = true;
+                            current = c["enabled"] | false;
+                            break;
+                        }
+                    }
+                }
+                HAL::Platform::LockGuard guard(queuedSwitchLock_);
+                auto queued = queuedSwitch_.find(name);
+                if (queued != queuedSwitch_.end()) current = queued->second;
+                if ((known || queued != queuedSwitch_.end()) && current == enabled) {
+                    doc["success"] = true;
+                } else {
+                    const bool ok = registry->requestEnable(name, enabled);
+                    if (ok) queuedSwitch_[name] = enabled;
+                    doc["success"] = ok;
+                }
             }
             serializeJson(doc, *response);
             request->send(response);
@@ -886,9 +918,6 @@ private:
     }
 };
 
-// Static member definition (single shared WS buffer — saves 2KB BSS vs two separate buffers)
-char WebUIComponent::wsBuffer_[WEBUI_WS_BUFFER_SIZE];
-HAL::Platform::RecursiveLock WebUIComponent::bufferLock_;
 
 } // namespace Components
 } // namespace DomoticsCore
