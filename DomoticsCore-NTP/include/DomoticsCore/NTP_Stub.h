@@ -50,6 +50,17 @@ inline time_t& clockForTest() {
     return value;
 }
 
+/// Whether a sync request is answered, and how many syncs a server answered.
+/// A host suite chooses: by default no server answers.
+inline bool& answerSyncForTest() {
+    static bool value = false;
+    return value;
+}
+inline uint32_t& syncAnswers() {
+    static uint32_t value = 0;
+    return value;
+}
+
 inline void init(const char* s1, const char* s2, const char* s3) {
     initServer(0) = s1 ? s1 : "";
     initServer(1) = s2 ? s2 : "";
@@ -64,7 +75,11 @@ inline void setTimezone(const char* tz) {
 inline time_t now() { return clockForTest() ? clockForTest() : time(nullptr); }
 inline void setSyncInterval(uint32_t intervalMs) { lastSyncIntervalMs() = intervalMs; }
 inline void stop() { clientRunning() = false; stopCalls()++; }
-inline void forceSync() { forceSyncCalls()++; }
+inline void forceSync() {
+    forceSyncCalls()++;
+    if (answerSyncForTest()) syncAnswers()++;
+}
+inline uint32_t syncCounter() { return syncAnswers(); }
 
 } // namespace NTPImpl
 } // namespace HAL

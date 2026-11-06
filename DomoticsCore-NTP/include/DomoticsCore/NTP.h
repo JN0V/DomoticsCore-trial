@@ -200,7 +200,7 @@ public:
                 if (syncCallback) {
                     syncCallback(true);
                 }
-            } else if (syncInProgress && now != stats.lastSyncTime) {
+            } else if (syncInProgress && HAL::NTP::syncCounter() != syncCounterAtRequest_) {
                 // Subsequent sync (manual or automatic)
                 stats.syncCount++;
                 stats.lastSyncTime = now;
@@ -266,6 +266,7 @@ public:
 
         DLOG_I(LOG_NTP, "Requesting immediate SNTP sync via HAL...");
         syncInProgress = true;
+        syncCounterAtRequest_ = HAL::NTP::syncCounter();
         
         // Use configured timeout for sync
         syncTimeoutTimer.setInterval(config.timeoutMs);
@@ -554,6 +555,7 @@ private:
     NTPStatistics stats;
     bool synced;
     bool syncInProgress;
+    uint32_t syncCounterAtRequest_ = 0;
     bool begun_ = false;          // between begin() and shutdown()
     bool clientWanted_ = false;   // begin() wants the client, shutdown() does not: loop() reads this
     bool clientStarted_ = false;

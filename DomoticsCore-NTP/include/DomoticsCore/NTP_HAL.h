@@ -46,8 +46,45 @@ namespace DomoticsCore {
 namespace HAL {
 namespace NTP {
 
+#if DOMOTICS_PLATFORM_ESP32 || DOMOTICS_PLATFORM_ESP8266
+/// Syncs a server answered, counted from the SNTP client's notification.
+inline uint32_t& answeredSyncs() {
+    static uint32_t value = 0;
+    return value;
+}
+#endif
+
+#if DOMOTICS_PLATFORM_ESP32
+inline void onSntpAnswer(struct timeval*) { answeredSyncs()++; }
+#elif DOMOTICS_PLATFORM_ESP8266
+inline uint32_t& lastSntpStamp() {
+    static uint32_t value = 0;
+    return value;
+}
+#endif
+
 inline void init(const char* server1, const char* server2 = nullptr, const char* server3 = nullptr) {
+#if DOMOTICS_PLATFORM_ESP32
+    sntp_set_time_sync_notification_cb(onSntpAnswer);
+#endif
     NTPImpl::init(server1, server2, server3);
+}
+
+/// Count of syncs a server answered; a change tells a requested sync ended.
+inline uint32_t syncCounter() {
+#if DOMOTICS_PLATFORM_ESP32
+    return answeredSyncs();
+#elif DOMOTICS_PLATFORM_ESP8266
+    // lwIP's SNTP has no notification here: a new server timestamp is an answer.
+    uint32_t stamp = sntp_get_current_timestamp();
+    if (stamp != lastSntpStamp()) {
+        lastSntpStamp() = stamp;
+        answeredSyncs()++;
+    }
+    return answeredSyncs();
+#else
+    return NTPImpl::syncCounter();
+#endif
 }
 
 inline void setTimezone(const char* tz) {
