@@ -224,6 +224,11 @@ public:
             setAvailable(false);
             removeDiscovery();
         }
+        // begin() subscribed to the MQTT events; the WebUI switch calls
+        // shutdown()/begin() directly, so drop them here or each begin() adds
+        // a copy and a disabled component keeps obeying commands.
+        if (__dc_eventBus) __dc_eventBus->unsubscribeOwner(this);
+        mqttConnected = false;
         // Nothing will drain it after this, and the entities it points at are
         // being withdrawn from Home Assistant anyway.
         HAL::Platform::LockGuard guard(storeLock);
