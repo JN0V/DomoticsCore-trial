@@ -136,7 +136,7 @@ public:
         reconcileAvailabilityWithWill();
         
         // Subscribe to MQTT events via EventBus
-        on<bool>(DomoticsCore::MQTTEvents::EVENT_CONNECTED, [this](const bool&) {
+        auto onMqttConnected = [this]() {
             DLOG_I(LOG_HA, "MQTT connected (via EventBus), publishing availability");
             // A new session may carry a will moved since begin(): follow it.
             reconcileAvailabilityWithWill();
@@ -150,7 +150,8 @@ public:
             } else {
                 DLOG_W(LOG_HA, "No entities registered yet; skipping discovery on connect");
             }
-        });
+        };
+        on<bool>(DomoticsCore::MQTTEvents::EVENT_CONNECTED, [onMqttConnected](const bool&) { onMqttConnected(); });
         
         on<bool>(DomoticsCore::MQTTEvents::EVENT_DISCONNECTED, [this](const bool&) {
             DLOG_W(LOG_HA, "MQTT disconnected (via EventBus)");
@@ -169,7 +170,13 @@ public:
             handleCommand(ev.topic, ev.payload);
         });
         
-        // Note: Initial MQTT state will be signaled via mqtt/connected event
+        // Note: Initial MQTT state will be signaled via mqtt/connected event.
+        // A re-enable (WebUI switch) gets none while the link stays up, and
+        // shutdown() withdrew discovery: republish as if it had just connected.
+        if (resumeConnected) {
+            resumeConnected = false;
+            onMqttConnected();
+        }
         
         return ComponentStatus::Success;
     }
@@ -220,6 +227,7 @@ public:
         DLOG_I(LOG_HA, "Shutting down");
         // Over a dropped link nothing can be delivered: queuing it would only
         // waste EventBus space.
+        resumeConnected = mqttConnected;
         if (mqttConnected) {
             setAvailable(false);
             removeDiscovery();
@@ -613,6 +621,7 @@ private:
     // adopted. Not inferable from "the field is non-empty": begin() fills it.
     bool availabilityTopicNamed = false;
     char adoptedFromWill_[HA::MAX_AVAIL_TOPIC] = {0};
+    bool resumeConnected = false;  // MQTT was up at shutdown(): begin() republishes
     bool mqttConnected = false;  // Track MQTT connection state via EventBus
     char commandTopicFilter[HA_TOPIC_BUF_SIZE] = {};  // Stored to keep pointer valid for EventBus
 
