@@ -545,6 +545,61 @@ void test_ntp_isSynced_delegates_to_HAL() {
 void setUp() {}
 void tearDown() {}
 
+// ---- sync end comes from a server answer ----
+namespace {
+struct SyncedOnceFixture {
+    Core core;
+    NTPComponent* ntp = nullptr;
+    int ok = 0, fail = 0;
+    SyncedOnceFixture() {
+        HAL::setCanOpenServerForTest(true);
+        NTPConfig cfg;
+        cfg.timeoutMs = 30;
+        auto owned = std::make_unique<NTPComponent>(cfg);
+        ntp = owned.get();
+        core.addComponent(std::move(owned));
+        HAL::NTPImpl::clockForTest() = 1700000000;
+        core.begin();
+        core.loop();
+        ntp->onSync([this](bool r) { if (r) ok++; else fail++; });
+    }
+    ~SyncedOnceFixture() {
+        core.shutdown();
+        HAL::NTPImpl::clockForTest() = 0;
+        HAL::NTPImpl::answerSyncForTest() = false;
+    }
+};
+}
+
+void test_ntp_sync_now_unanswered_fails() {
+    HAL::NTPImpl::answerSyncForTest() = false;
+    SyncedOnceFixture f;
+    TEST_ASSERT_TRUE(f.ntp->syncNow());
+    HAL::NTPImpl::clockForTest() = 1700000100;
+    f.core.loop();
+    TEST_ASSERT_EQUAL_UINT32(1, f.ntp->getStatistics().syncCount);
+    TEST_ASSERT_EQUAL_INT(0, f.ok);
+    HAL::delay(80);
+    f.core.loop();
+    TEST_ASSERT_EQUAL_UINT32(1, f.ntp->getStatistics().syncErrors);
+    TEST_ASSERT_EQUAL_UINT32(1, f.ntp->getStatistics().consecutiveFailures);
+    TEST_ASSERT_EQUAL_UINT32(1, f.ntp->getStatistics().syncCount);
+    TEST_ASSERT_EQUAL_INT(1, f.fail);
+}
+
+void test_ntp_sync_now_answered_succeeds() {
+    HAL::NTPImpl::answerSyncForTest() = true;
+    SyncedOnceFixture f;
+    uint32_t before = f.ntp->getStatistics().syncCount;
+    TEST_ASSERT_TRUE(f.ntp->syncNow());
+    HAL::NTPImpl::clockForTest() = 1700000100;
+    f.core.loop();
+    TEST_ASSERT_EQUAL_UINT32(before + 1, f.ntp->getStatistics().syncCount);
+    TEST_ASSERT_EQUAL_UINT32(0, f.ntp->getStatistics().consecutiveFailures);
+    TEST_ASSERT_EQUAL_INT(1, f.ok);
+    TEST_ASSERT_EQUAL_INT(0, f.fail);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -616,6 +671,8 @@ int main() {
     // bug fixes
     RUN_TEST(test_ntp_bootTime_is_unsigned_long);
     RUN_TEST(test_ntp_isSynced_delegates_to_HAL);
+    RUN_TEST(test_ntp_sync_now_unanswered_fails);
+    RUN_TEST(test_ntp_sync_now_answered_succeeds);
 
     return UNITY_END();
 }
