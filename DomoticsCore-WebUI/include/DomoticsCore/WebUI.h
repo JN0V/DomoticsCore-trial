@@ -79,8 +79,8 @@ private:
     // Update buffer shared by the poll handler (web task) and the SSE broadcast
     // (loop task): bufferLock_ covers it from build to last read, not only the build.
     // Taken before the registry's lock, never under it.
-    static char wsBuffer_[WEBUI_WS_BUFFER_SIZE];
-    static HAL::Platform::RecursiveLock bufferLock_;
+    inline static char wsBuffer_[WEBUI_WS_BUFFER_SIZE];
+    inline static HAL::Platform::RecursiveLock bufferLock_;
 
     // Heap-staging diagnostics for /api/ui/schema (see WebUI/SchemaMemProbe.h)
     WebUI::SchemaMemProbes schemaProbes_;
@@ -680,7 +680,25 @@ private:
                 doc["success"] = false;
                 doc["warning"] = "Disabling WebUI may make the UI inaccessible until reboot/reset.";
             } else {
-                doc["success"] = registry->requestEnable(name, enabled);
+                // A component already in the requested state is left alone:
+                // begin()/shutdown() must not run twice in a row.
+                bool known = false, current = false;
+                {
+                    JsonDocument list;
+                    registry->getComponentsList(list);
+                    for (JsonObject c : list["components"].as<JsonArray>()) {
+                        if (name == (c["name"] | "")) {
+                            known = true;
+                            current = c["enabled"] | false;
+                            break;
+                        }
+                    }
+                }
+                if (known && current == enabled) {
+                    doc["success"] = true;
+                } else {
+                    doc["success"] = registry->requestEnable(name, enabled);
+                }
             }
             serializeJson(doc, *response);
             request->send(response);
@@ -886,9 +904,6 @@ private:
     }
 };
 
-// Static member definition (single shared WS buffer — saves 2KB BSS vs two separate buffers)
-char WebUIComponent::wsBuffer_[WEBUI_WS_BUFFER_SIZE];
-HAL::Platform::RecursiveLock WebUIComponent::bufferLock_;
 
 } // namespace Components
 } // namespace DomoticsCore
