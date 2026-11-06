@@ -85,10 +85,10 @@ private:
     /// @note Cache assumes sole-writer access. External modifications to the
     /// storage backend (e.g., direct NVS writes) will NOT be reflected in the
     /// cache until the entry is removed and re-read.
-    /// @note When a key is missing from both cache and HAL, the caller-supplied
-    /// default value is cached. Subsequent reads with a different default will
-    /// return the previously cached default, not the new one. Use explicit put()
-    /// to set canonical values; do not rely on get() defaults for initialization.
+    /// @note The cache holds only values that exist in the backend. When a key
+    /// is missing, the caller-supplied default is returned but not cached, so a
+    /// later read with another default gets that default and a later put() of
+    /// the same value still writes.
     std::map<String, StorageEntry> cache;
     std::vector<StorageKeyDef> registeredKeys;  // Keys registered by components
     bool isOpen;
@@ -360,12 +360,14 @@ public:
         }
         String value = storage.getString(key.c_str(), defaultValue);
         // Cache the HAL result for future reads
-        StorageEntry entry;
-        entry.key = key;
-        entry.type = StorageValueType::String;
-        entry.stringValue = value;
-        entry.size = value.length();
-        cache[key] = entry;
+        if (storage.isKey(key.c_str())) {  // cache only stored values, never the caller default
+            StorageEntry entry;
+            entry.key = key;
+            entry.type = StorageValueType::String;
+            entry.stringValue = value;
+            entry.size = value.length();
+            cache[key] = entry;
+        }
         DLOG_D(LOG_STORAGE, "Retrieved string '%s' = '%s'", key.c_str(), value.c_str());
         return value;
     }
@@ -382,12 +384,14 @@ public:
             return it->second.intValue;
         }
         int32_t value = storage.getInt(key.c_str(), defaultValue);
-        StorageEntry entry;
-        entry.key = key;
-        entry.type = StorageValueType::Integer;
-        entry.intValue = value;
-        entry.size = sizeof(int32_t);
-        cache[key] = entry;
+        if (storage.isKey(key.c_str())) {  // cache only stored values, never the caller default
+            StorageEntry entry;
+            entry.key = key;
+            entry.type = StorageValueType::Integer;
+            entry.intValue = value;
+            entry.size = sizeof(int32_t);
+            cache[key] = entry;
+        }
         DLOG_D(LOG_STORAGE, "Retrieved int '%s' = %d", key.c_str(), value);
         return value;
     }
@@ -404,12 +408,14 @@ public:
             return it->second.floatValue;
         }
         float value = storage.getFloat(key.c_str(), defaultValue);
-        StorageEntry entry;
-        entry.key = key;
-        entry.type = StorageValueType::Float;
-        entry.floatValue = value;
-        entry.size = sizeof(float);
-        cache[key] = entry;
+        if (storage.isKey(key.c_str())) {  // cache only stored values, never the caller default
+            StorageEntry entry;
+            entry.key = key;
+            entry.type = StorageValueType::Float;
+            entry.floatValue = value;
+            entry.size = sizeof(float);
+            cache[key] = entry;
+        }
         DLOG_D(LOG_STORAGE, "Retrieved float '%s' = %.2f", key.c_str(), value);
         return value;
     }
@@ -426,12 +432,14 @@ public:
             return it->second.boolValue;
         }
         bool value = storage.getBool(key.c_str(), defaultValue);
-        StorageEntry entry;
-        entry.key = key;
-        entry.type = StorageValueType::Boolean;
-        entry.boolValue = value;
-        entry.size = sizeof(bool);
-        cache[key] = entry;
+        if (storage.isKey(key.c_str())) {  // cache only stored values, never the caller default
+            StorageEntry entry;
+            entry.key = key;
+            entry.type = StorageValueType::Boolean;
+            entry.boolValue = value;
+            entry.size = sizeof(bool);
+            cache[key] = entry;
+        }
         DLOG_D(LOG_STORAGE, "Retrieved bool '%s' = %s", key.c_str(), value ? "true" : "false");
         return value;
     }
@@ -448,12 +456,14 @@ public:
             return it->second.uint64Value;
         }
         uint64_t value = storage.getULong64(key.c_str(), defaultValue);
-        StorageEntry entry;
-        entry.key = key;
-        entry.type = StorageValueType::UInt64;
-        entry.uint64Value = value;
-        entry.size = sizeof(uint64_t);
-        cache[key] = entry;
+        if (storage.isKey(key.c_str())) {  // cache only stored values, never the caller default
+            StorageEntry entry;
+            entry.key = key;
+            entry.type = StorageValueType::UInt64;
+            entry.uint64Value = value;
+            entry.size = sizeof(uint64_t);
+            cache[key] = entry;
+        }
         DLOG_D(LOG_STORAGE, "Retrieved uint64 '%s' = %llu", key.c_str(), (unsigned long long)value);
         return value;
     }
