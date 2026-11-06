@@ -812,10 +812,11 @@ inline void pinMode(uint8_t pin, uint8_t mode) {
 /**
  * @brief Write analog/PWM value to pin (stub implementation)
  */
+inline int lastAnalogWriteValues[64] = {};
+inline int lastAnalogWriteValue(uint8_t pin) { return pin < 64 ? lastAnalogWriteValues[pin] : 0; }
 inline void analogWrite(uint8_t pin, int value) {
-    // Stub implementation - no actual PWM on native platform
-    (void)pin;
-    (void)value;
+    // Stub implementation - no actual PWM on native platform; records the last value per pin for tests
+    if (pin < 64) lastAnalogWriteValues[pin] = value;
 }
 
 /**

@@ -421,6 +421,32 @@ void test_effect_names(void) {
     TEST_ASSERT_EQUAL_STRING("Breathing", led.getEffectName(LEDEffect::Breathing).c_str());
 }
 
+// ============================================================================
+// Disabled LED stays dark; enabling drives the stored color again (#47)
+// ============================================================================
+
+void test_disabled_led_stays_dark_and_reenabling_restores_color(void) {
+    HAL::Platform::setMillisForTest(1000);
+    LEDComponent led;
+    led.addSingleLED(2, "Status");
+    TEST_ASSERT_EQUAL(ComponentStatus::Success, led.begin());
+    led.setLED((size_t)0, LEDColor::Red(), 200);
+    HAL::Platform::advanceMillisForTest(60);
+    led.loop();
+    TEST_ASSERT_EQUAL_INT(200, HAL::Platform::lastAnalogWriteValue(2));
+
+    led.enableLED((size_t)0, false);
+    HAL::Platform::advanceMillisForTest(60);
+    led.loop();
+    TEST_ASSERT_EQUAL_INT(0, HAL::Platform::lastAnalogWriteValue(2));
+
+    led.enableLED((size_t)0, true);
+    HAL::Platform::advanceMillisForTest(60);
+    led.loop();
+    TEST_ASSERT_EQUAL_INT(200, HAL::Platform::lastAnalogWriteValue(2));
+    HAL::Platform::resetMillisForTest();
+}
+
 int main(int argc, char** argv) {
     UNITY_BEGIN();
 
@@ -467,6 +493,7 @@ int main(int argc, char** argv) {
     RUN_TEST(test_add_after_shutdown_is_deferred_to_the_next_begin);
 
     RUN_TEST(test_effect_names);
+    RUN_TEST(test_disabled_led_stays_dark_and_reenabling_restores_color);
 
     return UNITY_END();
 }
