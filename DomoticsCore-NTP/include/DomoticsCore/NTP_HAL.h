@@ -58,8 +58,16 @@ inline uint32_t& answeredSyncs() {
 #if DOMOTICS_PLATFORM_ESP32
 inline void onSntpAnswer(struct timeval*) { answeredSyncs()++; }
 #elif DOMOTICS_PLATFORM_ESP8266
-// Called by the core's SNTP client each time a server's answer sets the clock.
-inline void onSntpAnswer() { answeredSyncs()++; }
+// Called on every settimeofday(), SNTP's or not. Count it only when the clock
+// agrees with the SNTP client's own timestamp (the server's answer); a clock
+// set by other code does not match it and is ignored.
+inline void onSntpAnswer() {
+    uint32_t server = sntp_get_current_timestamp();
+    if (server == 0) return;
+    long diff = (long)time(nullptr) - (long)server;
+    if (diff < -2 || diff > 2) return;
+    answeredSyncs()++;
+}
 #endif
 
 inline void init(const char* server1, const char* server2 = nullptr, const char* server3 = nullptr) {
