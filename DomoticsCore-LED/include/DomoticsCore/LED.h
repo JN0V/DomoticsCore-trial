@@ -518,10 +518,11 @@ private:
         for (size_t i = 0; i < ledStates.size(); i++) {
             auto& state = ledStates[i];
             
-            if (!state.enabled || state.effect == LEDEffect::Solid) {
-                if (state.effect == LEDEffect::Solid) {
-                    setLEDOutput(i, state.currentColor, state.brightness);
-                }
+            if (!state.enabled) {
+                continue;
+            }
+            if (state.effect == LEDEffect::Solid) {
+                setLEDOutput(i, state.currentColor, state.brightness);
                 continue;
             }
             
