@@ -2,12 +2,13 @@
 sources: [DomoticsCore-System/include/DomoticsCore/System.h, DomoticsCore-System/include/DomoticsCore/SystemPersistence.h]
 checked: 500862d
 verified: agent:documentalist
+judged-in-parts: 33c09cb
 -->
 # Component Configuration Pattern -- Storage and WebUI Integration
 
 Part of the [Component Configuration Pattern](component-configuration-pattern.md).
 
-## 3. Storage Integration (in System.h)
+## 3. Storage Integration (in SystemPersistence.h)
 
 ### Pattern: Get → Override → Set
 
@@ -102,7 +103,7 @@ For each component needing update:
 
 - [ ] Add `getConfig()` method
 - [ ] Verify `setConfig()` is smart (detects changes, minimal restart)
-- [ ] Add Storage integration section in `System.h`
+- [ ] Add a load function in `SystemPersistence.h`, called from `loadAllConfigs`
 - [ ] Test with empty Storage (should use defaults)
 - [ ] Test with partial Storage (should merge correctly)
 - [ ] Test with full Storage (should override everything)
