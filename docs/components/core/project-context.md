@@ -1,7 +1,7 @@
 <!-- workline
 sources: [DomoticsCore-Core/library.json, DomoticsCore-HomeAssistant/library.json, DomoticsCore-LED/library.json, DomoticsCore-MQTT/library.json, DomoticsCore-NTP/library.json, DomoticsCore-OTA/library.json, DomoticsCore-RemoteConsole/library.json, DomoticsCore-Storage/library.json, DomoticsCore-System/library.json, DomoticsCore-SystemInfo/library.json, DomoticsCore-WebUI/library.json, DomoticsCore-Wifi/library.json, DomoticsCore-Core/include/DomoticsCore/IComponent.h, DomoticsCore-Core/include/DomoticsCore/StringParse.h, DomoticsCore-Core/include/DomoticsCore/Testing/HeapTracker_ESP32.h]
 checked: 4cdb3e6
-judged: b678013
+judged: 33c09cb
 verified: agent:documentalist
 -->
 # DomoticsCore-Core -- Project Context (AI Agent Reference)
@@ -58,10 +58,10 @@ Every DomoticsCore component depends on Core. Based on `library.json` dependency
 | DomoticsCore-System | Yes (`>=1.0.0`) | Uses IComponent, EventBus, ComponentRegistry |
 | DomoticsCore-RemoteConsole | Yes (`>=1.13.0`) | Uses IComponent, LoggerCallbacks, EventBus |
 | DomoticsCore-Wifi | Implicit (via includes) | Uses IComponent, EventBus, Logger |
-| DomoticsCore-Storage | Implicit (via includes) | Uses IComponent, EventBus, Logger |
-| DomoticsCore-OTA | Implicit (via includes) | Uses IComponent, EventBus, Logger |
+| DomoticsCore-Storage | Yes (`>=1.4.0`) | Uses IComponent, EventBus, Logger |
+| DomoticsCore-OTA | Yes (`>=1.4.0`) | Uses IComponent, EventBus, Logger |
 | DomoticsCore-WebUI | Implicit (via includes) | Uses IComponent, ComponentRegistry, IWebUIProvider |
-| DomoticsCore-SystemInfo | Implicit (via includes) | Uses IComponent, EventBus, MemoryManager |
+| DomoticsCore-SystemInfo | Yes (`>=1.4.0`) | Uses IComponent, EventBus, MemoryManager |
 
 **Impact of changes to Core:** Any breaking change to Core's public API affects ALL components. Exercise extreme caution.
 
