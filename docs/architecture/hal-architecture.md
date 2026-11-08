@@ -3,6 +3,7 @@ sources: [DomoticsCore-Core/include/DomoticsCore/Platform_HAL.h, DomoticsCore-Co
 checked: ae5715e
 judged: 1e9326b
 verified: agent:documentalist
+judged-in-parts: 33c09cb
 -->
 # HAL Architecture: Routing Header + Platform Files
 

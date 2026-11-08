@@ -2,6 +2,7 @@
 sources: [DomoticsCore-NTP/include/DomoticsCore/NTP.h, DomoticsCore-System/include/DomoticsCore/System.h, DomoticsCore-System/include/DomoticsCore/SystemPersistence.h]
 checked: 500862d
 verified: agent:documentalist
+judged-in-parts: 33c09cb
 -->
 
 # Component Configuration Pattern
