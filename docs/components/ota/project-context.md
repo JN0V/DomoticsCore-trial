@@ -2,7 +2,7 @@
 sources: [DomoticsCore-OTA/include/DomoticsCore/OTA.h, DomoticsCore-OTA/include/DomoticsCore/OTAEvents.h, DomoticsCore-OTA/include/DomoticsCore/OTAWebUI.h, DomoticsCore-OTA/include/DomoticsCore/Update_ESP32.h, DomoticsCore-OTA/include/DomoticsCore/Update_ESP8266.h, DomoticsCore-OTA/include/DomoticsCore/Update_HAL.h, DomoticsCore-OTA/include/DomoticsCore/Update_Stub.h, DomoticsCore-OTA/src/OTA.cpp, DomoticsCore-OTA/library.json, DomoticsCore-OTA/platformio.ini, DomoticsCore-OTA/test/test_ota_component/test_ota_component.cpp, DomoticsCore-OTA/test/test_ota_esp32/test_ota_esp32.cpp, DomoticsCore-OTA/test/test_ota_esp8266/test_ota_esp8266.cpp, DomoticsCore-OTA/test/test_ota_http/test_ota_http.cpp, DomoticsCore-OTA/test/test_ota_status_allocations/test_ota_status_allocations.cpp, DomoticsCore-OTA/test/test_ota_url_hash/test_ota_url_hash.cpp, DomoticsCore-OTA/examples/BasicOTA/src/main.cpp, DomoticsCore-OTA/examples/OTAWithWebUI/src/main.cpp]
 checked: cff4019
 verified: agent:documentalist
-judged: cff4019
+judged: bb7ea2c
 -->
 # DomoticsCore-OTA -- Project Context (AI Agent)
 
@@ -67,13 +67,13 @@ DomoticsCore-OTA/
 |------|-------|-------|
 | `OTA.h` | 181 | Config struct (13 fields) + class declaration |
 | `OTAEvents.h` | 33 | Six event topic constants |
-| `OTAWebUI.h` | 558 | Full WebUI provider with route registration |
+| `OTAWebUI.h` | 563 | Full WebUI provider with route registration |
 | `Update_HAL.h` | 37 | Platform routing only |
 | `Update_ESP32.h` | 83 | ESP32 HAL: direct flash write, no buffering |
 | `Update_ESP8266.h` | 106 | ESP8266 HAL: `Update.runAsync(true)`, no buffering |
 | `Update_Stub.h` | 84 | Stub HAL: all writes succeed silently |
-| `OTA.cpp` | 759 | Core logic -- approaching 800-line constitution limit |
-| **Total** | **1841** | All source files combined |
+| `OTA.cpp` | 761 | Core logic -- approaching 800-line constitution limit |
+| **Total** | **1848** | All source files combined |
 
 ---
 
@@ -235,7 +235,7 @@ All three implementations expose the same function set in `DomoticsCore::HAL::OT
 | SOLID / SRP | Compliant | `OTAComponent` handles update logic; `OTAWebUI` handles presentation; transport is injected |
 | HAL Isolation (IX) | Compliant | All `#ifdef` confined to `Update_HAL.h` and platform headers |
 | Non-Blocking (X) | Compliant | Deferred execution via pending flags; `loop()` processes work; `delay()` only used in 100ms pre-reboot pause |
-| File Size (VII) | Warning | `OTA.cpp` is 759 lines, within the 800-line hard limit but above the 500-line target. `OTAWebUI.h` is 558 lines. Monitor growth. |
+| File Size (VII) | Warning | `OTA.cpp` is 761 lines, within the 800-line hard limit but above the 500-line target. `OTAWebUI.h` is 563 lines. Monitor growth. |
 | EventBus (VI) | Compliant | All status and progress updates published via `publishStatusEvent()`, which emits the serialized JSON bytes |
 | Memory (XIV) | Compliant | Upload progress throttled; no String concatenation in hot paths; PROGMEM used for HTML |
 | Versioning (XV) | Compliant | `library.json` version `1.11.0` matches `metadata.version` in constructor |
@@ -243,7 +243,7 @@ All three implementations expose the same function set in `DomoticsCore::HAL::OT
 
 ### Potential Improvement Areas
 
-- `OTA.cpp` line count (759) should be monitored. If new features are added, consider extracting manifest fetching or version comparison into a separate utility.
+- `OTA.cpp` line count (761) should be monitored. If new features are added, consider extracting manifest fetching or version comparison into a separate utility.
 - `OTAWebUI.h` contains both context building and route registration. If it grows further, route registration could be extracted into a helper.
 - Firmware signature verification is not implemented. The `signaturePublicKey` field that used to advertise it was removed in v2.1.0 (DC-7): it was never read, so it promised a check that did not happen. SHA-256 integrity verification *is* performed on the download path, and the image is committed to flash only after the digest matches (SEC-2). Note the ordering is the security property: `HAL::OTAUpdate::end(true)` is the point of no return — it switches the ESP32 boot partition and stages the ESP8266 eboot copy — and no Arduino core lets the application undo it, so `abort()` is only meaningful *before* `end()`. See the contract in `Update_HAL.h`. The **upload** path verifies on the same terms since SEC-7: `acceptUploadChunk()` hashes what it writes and `finalizeUpload()` checks the digest before `end(true)`. The expected hash is optional per upload (`X-Firmware-SHA256` header or `?sha256=`), because every caller before SEC-7 supplied none; set `OTAConfig::requireUploadHash` to refuse uploads without one, which also rejects the built-in browser form since it cannot send a digest.
 - ~~**(C14)**~~ **Resolved (BUG-21).** `EVENT_START` and `EVENT_END` are emitted at the points this entry named: the beginning of a download or upload, and the end of the transfer before verification.
