@@ -1,8 +1,9 @@
 <!-- workline
 sources: [DomoticsCore-LED/library.json, DomoticsCore-LED/platformio.ini, DomoticsCore-LED/include/DomoticsCore/LED.h, DomoticsCore-LED/include/DomoticsCore/LEDWebUI.h, DomoticsCore-LED/test/test_led_types/test_led_types.cpp, DomoticsCore-LED/test/test_led_component/test_led_component.cpp, DomoticsCore-LED/examples/BasicLED/src/main.cpp, DomoticsCore-LED/examples/BasicLED/platformio.ini, DomoticsCore-LED/examples/LEDWithWebUI/src/main.cpp, DomoticsCore-LED/examples/LEDWithWebUI/platformio.ini]
 checked: ae5715e
-judged: b678013
+judged: bb7ea2c
 verified: agent:documentalist
+judged-in-parts: bb7ea2c
 -->
 
 # DomoticsCore-LED -- Project Context (AI Agent Reference)
@@ -118,7 +119,7 @@ The WebUI component takes ownership of the `LEDWebUI` pointer.
 
 2. **Forgetting `invertLogic` for common-anode LEDs**: Common-anode RGB LEDs require `invertLogic = true`. Without it, the PWM output is reversed (full brightness produces off, and vice versa).
 
-3. **Rainbow on single-color LEDs**: `LEDEffect::Rainbow` only produces visible color changes on RGB LEDs. On single-color LEDs it has no visible effect because the HSV-to-RGB conversion is applied to channels that are collapsed into a single output.
+3. **Rainbow on single-color LEDs**: `LEDEffect::Rainbow` only produces visible color changes on RGB LEDs. On single-color LEDs it has no visible effect because the rainbow color is applied only to RGB LEDs.
 
 4. **Name collisions**: There is no uniqueness enforcement on LED names. Duplicate names cause `setLED(name, ...)` to always match the first occurrence.
 
